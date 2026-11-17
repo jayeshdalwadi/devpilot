@@ -9,6 +9,7 @@
   },
   "scripts": {
     "start": "node src/server.js",
+    "local": "node scripts/start-local.js",
     "dev": "node --watch src/server.js",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -14,11 +14,11 @@ PR ──► Review Bot: review ⇄ fix ──► Test Bot: lint + tests + CI �
 Requirements: Node 18.18+ and PostgreSQL (local, or `docker compose up -d`).
 
 ```bash
-cp .env.example .env        # adjust DATABASE_URL
-npm install
-npm run db:migrate
-npm run dev                 # http://localhost:3000
+npm run local               # or double-click start-local.cmd on Windows
 ```
+
+The launcher creates `.env` from `.env.example` on the first run. It then installs dependencies, checks that PostgreSQL is reachable (starting `docker compose` if Docker is installed), applies migrations, starts the smee webhook tunnel when `BOTS_ENABLED=true`, and runs the server in watch mode on http://localhost:3000.
+Flags: `--no-watch`, `--skip-migrate`.
 
 | Method | Path | Description |
 |---|---|---|
