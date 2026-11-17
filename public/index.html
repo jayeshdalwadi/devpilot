@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>baseApp</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>baseApp</h1>
+      <span id="health" class="status" data-state="unknown" title="Database status">
+        <span class="dot"></span><span id="health-text">Checking…</span>
+      </span>
+    </header>
+
+    <main class="container">
+      <section class="card">
+        <h2>Add item</h2>
+        <form id="create-form" class="form" autocomplete="off">
+          <label>
+            Name
+            <input name="name" required maxlength="200" placeholder="e.g. Buy milk" />
+          </label>
+          <label>
+            Description <span class="muted">(optional)</span>
+            <input name="description" maxlength="2000" placeholder="Details" />
+          </label>
+          <button type="submit" class="primary">Add</button>
+        </form>
+        <p id="form-error" class="error" role="alert" hidden></p>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Items <span id="count" class="muted"></span></h2>
+          <input id="filter" type="search" placeholder="Filter…" aria-label="Filter items" />
+        </div>
+        <p id="list-error" class="error" role="alert" hidden></p>
+        <ul id="items" class="items"></ul>
+        <p id="empty" class="empty" hidden>No items yet. Add one above.</p>
+      </section>
+    </main>
+
+    <template id="item-template">
+      <li class="item">
+        <div class="view">
+          <div class="text">
+            <strong class="name"></strong>
+            <span class="description muted"></span>
+          </div>
+          <span class="meta muted"></span>
+          <div class="actions">
+            <button type="button" class="edit">Edit</button>
+            <button type="button" class="delete danger">Delete</button>
+          </div>
+        </div>
+        <form class="editor form" hidden>
+          <input name="name" required maxlength="200" aria-label="Name" />
+          <input name="description" maxlength="2000" aria-label="Description" placeholder="Description" />
+          <div class="actions">
+            <button type="submit" class="primary">Save</button>
+            <button type="button" class="cancel">Cancel</button>
+          </div>
+        </form>
+      </li>
+    </template>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

@@ -19,6 +19,29 @@ describe('GET /health', () => {
   });
 });
 
+describe('UI and API index', () => {
+  it('serves the UI at /', async () => {
+    const { app } = createTestApp();
+    const res = await request(app).get('/');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/text\/html/);
+    expect(res.text).toContain('<script type="module" src="/app.js">');
+  });
+
+  it('serves the UI assets', async () => {
+    const { app } = createTestApp();
+    expect((await request(app).get('/app.js')).status).toBe(200);
+    expect((await request(app).get('/styles.css')).status).toBe(200);
+  });
+
+  it('lists the API endpoints at /api', async () => {
+    const { app } = createTestApp();
+    const res = await request(app).get('/api');
+    expect(res.status).toBe(200);
+    expect(res.body.endpoints.health).toBe('GET /health');
+  });
+});
+
 describe('unknown routes', () => {
   it('return 404 JSON', async () => {
     const { app } = createTestApp();

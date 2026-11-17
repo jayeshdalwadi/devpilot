@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { LABELS } from '../../src/bots/github.js';
 import { JOBS } from '../../src/bots/queue.js';
 import { parseCommand, routeEvent } from '../../src/bots/router.js';
+import { missingWebhookHeaders } from '../../src/bots/webhook.js';
+
+describe('missingWebhookHeaders', () => {
+  it('reports an unsigned delivery (App has no webhook secret)', () => {
+    expect(missingWebhookHeaders({ 'x-github-event': 'issues', 'x-github-delivery': '1' })).toEqual(['x-hub-signature-256']);
+    expect(missingWebhookHeaders({ 'x-github-event': 'issues', 'x-github-delivery': '1', 'x-hub-signature-256': 'sha256=x' })).toEqual([]);
+  });
+});
 
 const botLogin = 'base-bot[bot]';
 const repository = { name: 'baseApp', owner: { login: 'acme' } };

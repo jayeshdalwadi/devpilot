@@ -1,5 +1,10 @@
 import fs from 'node:fs';
 import { App } from '@octokit/app';
+import { Octokit as OctokitCore } from '@octokit/core';
+import { paginateRest } from '@octokit/plugin-paginate-rest';
+
+// @octokit/app uses the bare core client by default; the bots need `octokit.paginate`.
+const Octokit = OctokitCore.plugin(paginateRest);
 
 export const LABELS = {
   planProposed: 'bot:plan-proposed',
@@ -28,6 +33,7 @@ export function createGitHubApp(config) {
     appId: config.GITHUB_APP_ID,
     privateKey: fs.readFileSync(config.GITHUB_PRIVATE_KEY_PATH, 'utf8'),
     webhooks: { secret: config.GITHUB_WEBHOOK_SECRET },
+    Octokit,
   });
 }
 
