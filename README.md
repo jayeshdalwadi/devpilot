@@ -29,6 +29,10 @@ Flags: `--no-watch`, `--skip-migrate`.
 | PATCH | `/api/items/:id` | Update fields |
 | DELETE | `/api/items/:id` | Delete |
 
+### Items UI
+
+Open http://localhost:3000/ (or your `PORT`) for a simple Items page. It is plain HTML/CSS/JS served from `public/`. The list is read-only, and each row has its own **Edit** and **Delete** buttons. **Add item** and **Edit** open the form in a modal dialog. The UI uses the `/api/items` endpoints above, which have no authentication, so do not expose it publicly.
+
 ```bash
 npm test        # Vitest + Supertest (no DB needed; Prisma is faked)
 npm run lint
