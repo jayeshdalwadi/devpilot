@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Item {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Per-PR bookkeeping for the bots (iteration caps, last test failure).
+model BotPrState {
+  id           Int      @id @default(autoincrement())
+  repoFullName String
+  prNumber     Int
+  issueNumber  Int?
+  reviewRounds Int      @default(0)
+  fixRounds    Int      @default(0)
+  lastTestLog  String?
+  updatedAt    DateTime @updatedAt
+
+  @@unique([repoFullName, prNumber])
+}

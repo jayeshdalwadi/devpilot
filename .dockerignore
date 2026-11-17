@@ -1,0 +1,7 @@
+node_modules
+.git
+.env
+*.pem
+.bot-workspaces
+coverage
+tests
