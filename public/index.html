@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Items</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <header class="page-header">
+      <h1>Items</h1>
+      <button type="button" id="add-item" class="btn btn-primary">Add item</button>
+    </header>
+
+    <main>
+      <p id="list-error" class="error" role="alert" hidden></p>
+
+      <table id="items-table" class="items-table">
+        <thead>
+          <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Name</th>
+            <th scope="col">Description</th>
+            <th scope="col">Updated</th>
+            <th scope="col" class="actions-col"><span class="visually-hidden">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody id="items-body"></tbody>
+      </table>
+
+      <p id="empty-state" class="empty-state" hidden>No items yet. Click “Add item” to create one.</p>
+    </main>
+
+    <dialog id="item-modal" aria-labelledby="modal-title">
+      <form id="item-form" method="dialog" novalidate>
+        <h2 id="modal-title">Add item</h2>
+
+        <label for="item-name">Name</label>
+        <input id="item-name" name="name" type="text" maxlength="200" required />
+
+        <label for="item-description">Description</label>
+        <textarea id="item-description" name="description" rows="4" maxlength="2000"></textarea>
+
+        <ul id="form-errors" class="error" role="alert" hidden></ul>
+
+        <div class="modal-actions">
+          <button type="button" id="cancel-item" class="btn">Cancel</button>
+          <button type="submit" id="save-item" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+</html>
