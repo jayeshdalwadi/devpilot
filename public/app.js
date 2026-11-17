@@ -1,170 +1,166 @@
-// Items UI. Talks to the JSON API; all user data is rendered with textContent (never innerHTML).
+// Items UI: read-only list with per-row actions; create/edit happens in a modal.
+// Rows are built with textContent (never raw HTML) so item data cannot inject markup.
 
-const $ = (sel, root = document) => root.querySelector(sel);
+const API = '/api/items';
 
 const els = {
-  createForm: $('#create-form'),
-  formError: $('#form-error'),
-  listError: $('#list-error'),
-  list: $('#items'),
-  empty: $('#empty'),
-  count: $('#count'),
-  filter: $('#filter'),
-  template: $('#item-template'),
-  health: $('#health'),
-  healthText: $('#health-text'),
+  addBtn: document.getElementById('add-item'),
+  table: document.getElementById('items-table'),
+  body: document.getElementById('items-body'),
+  empty: document.getElementById('empty-state'),
+  listError: document.getElementById('list-error'),
+  modal: document.getElementById('item-modal'),
+  form: document.getElementById('item-form'),
+  title: document.getElementById('modal-title'),
+  name: document.getElementById('item-name'),
+  description: document.getElementById('item-description'),
+  errors: document.getElementById('form-errors'),
+  cancel: document.getElementById('cancel-item'),
+  save: document.getElementById('save-item'),
 };
 
-let items = [];
+/** id of the item being edited, or null in create mode */
+let editingId = null;
 
 async function api(path, options = {}) {
   const res = await fetch(path, {
     ...options,
-    headers: options.body ? { 'content-type': 'application/json' } : undefined,
+    headers: { 'Content-Type': 'application/json', ...options.headers },
   });
-  if (res.status === 204) return null;
-  const body = await res.json().catch(() => ({}));
+  const body = res.status === 204 ? null : await res.json().catch(() => null);
   if (!res.ok) {
-    const detail = body.details?.map((d) => d.message).join(', ');
-    throw new Error(detail || body.error || `Request failed (${res.status})`);
+    const err = new Error(body?.error || `Request failed (${res.status})`);
+    err.status = res.status;
+    err.details = body?.details;
+    throw err;
   }
   return body;
 }
 
-function showError(el, err) {
-  el.textContent = err ? err.message || String(err) : '';
-  el.hidden = !err;
+function showListError(message) {
+  els.listError.textContent = message;
+  els.listError.hidden = !message;
 }
 
-function formData(form) {
-  const name = form.elements.name.value.trim();
-  const description = form.elements.description.value.trim();
-  return description ? { name, description } : { name };
+function button(label, className, onClick) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = className;
+  btn.textContent = label;
+  btn.addEventListener('click', onClick);
+  return btn;
 }
 
-// ---------- rendering ----------
-
-function render() {
-  const q = els.filter.value.trim().toLowerCase();
-  const visible = q
-    ? items.filter((i) => i.name.toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q))
-    : items;
-
-  els.list.replaceChildren(...visible.map(renderItem));
-  els.count.textContent = items.length ? `(${visible.length === items.length ? items.length : `${visible.length}/${items.length}`})` : '';
-  els.empty.hidden = items.length > 0;
+function cell(text) {
+  const td = document.createElement('td');
+  td.textContent = text;
+  return td;
 }
 
-function renderItem(item) {
-  const li = els.template.content.firstElementChild.cloneNode(true);
-  const view = $('.view', li);
-  const editor = $('.editor', li);
-
-  $('.name', li).textContent = item.name;
-  $('.description', li).textContent = item.description || '';
-  $('.meta', li).textContent = `#${item.id} · ${new Date(item.createdAt).toLocaleString()}`;
-
-  $('.edit', li).addEventListener('click', () => {
-    editor.elements.name.value = item.name;
-    editor.elements.description.value = item.description || '';
-    view.hidden = true;
-    editor.hidden = false;
-    editor.elements.name.focus();
-  });
-
-  $('.cancel', li).addEventListener('click', () => {
-    editor.hidden = true;
-    view.hidden = false;
-  });
-
-  editor.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = editor.elements.name.value.trim();
-    const description = editor.elements.description.value.trim();
-    await withBusy(editor, async () => {
-      // Send an empty string when the description is cleared, so the old value is removed.
-      const updated = await api(`/api/items/${item.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ name, description }),
-      });
-      items = items.map((i) => (i.id === item.id ? updated : i));
-      render();
-    });
-  });
-
-  $('.delete', li).addEventListener('click', async (e) => {
-    if (!confirm(`Delete "${item.name}"?`)) return;
-    await withBusy(e.currentTarget, async () => {
-      await api(`/api/items/${item.id}`, { method: 'DELETE' });
-      items = items.filter((i) => i.id !== item.id);
-      render();
-    });
-  });
-
-  return li;
-}
-
-/** Disables the buttons in `el` while `fn` runs and shows any error in the list area. */
-async function withBusy(el, fn) {
-  const buttons = el.matches('button') ? [el] : [...el.querySelectorAll('button')];
-  buttons.forEach((b) => (b.disabled = true));
-  showError(els.listError, null);
-  try {
-    await fn();
-  } catch (err) {
-    showError(els.listError, err);
-  } finally {
-    buttons.forEach((b) => (b.disabled = false));
+function renderItems(items) {
+  els.body.replaceChildren();
+  for (const item of items) {
+    const tr = document.createElement('tr');
+    tr.dataset.id = String(item.id);
+    tr.append(
+      cell(String(item.id)),
+      cell(item.name),
+      cell(item.description ?? ''),
+      cell(new Date(item.updatedAt).toLocaleString()),
+    );
+    const actions = document.createElement('td');
+    actions.className = 'actions';
+    actions.append(
+      button('Edit', 'btn', () => openEdit(item.id)),
+      button('Delete', 'btn btn-danger', () => deleteItem(item)),
+    );
+    tr.append(actions);
+    els.body.append(tr);
   }
+  els.table.hidden = items.length === 0;
+  els.empty.hidden = items.length !== 0;
 }
-
-// ---------- actions ----------
 
 async function loadItems() {
   try {
-    items = await api('/api/items');
-    showError(els.listError, null);
+    showListError('');
+    renderItems(await api(API));
   } catch (err) {
-    showError(els.listError, err);
+    showListError(`Could not load items: ${err.message}`);
   }
-  render();
 }
 
-els.createForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const button = $('button', els.createForm);
-  button.disabled = true;
-  showError(els.formError, null);
+function showFormErrors(messages) {
+  els.errors.replaceChildren(
+    ...messages.map((m) => {
+      const li = document.createElement('li');
+      li.textContent = m;
+      return li;
+    }),
+  );
+  els.errors.hidden = messages.length === 0;
+}
+
+function openModal({ title, name = '', description = '' }) {
+  els.title.textContent = title;
+  els.name.value = name;
+  els.description.value = description;
+  showFormErrors([]);
+  els.save.disabled = false;
+  els.modal.showModal();
+  els.name.focus();
+}
+
+function openCreate() {
+  editingId = null;
+  openModal({ title: 'Add item' });
+}
+
+async function openEdit(id) {
   try {
-    const created = await api('/api/items', { method: 'POST', body: JSON.stringify(formData(els.createForm)) });
-    items.push(created);
-    els.createForm.reset();
-    els.createForm.elements.name.focus();
-    render();
+    const item = await api(`${API}/${id}`);
+    editingId = item.id;
+    openModal({ title: 'Edit item', name: item.name, description: item.description ?? '' });
   } catch (err) {
-    showError(els.formError, err);
+    showListError(`Could not open item ${id}: ${err.message}`);
+    if (err.status === 404) loadItems();
+  }
+}
+
+async function deleteItem(item) {
+  if (!window.confirm(`Delete "${item.name}"?`)) return;
+  try {
+    await api(`${API}/${item.id}`, { method: 'DELETE' });
+  } catch (err) {
+    showListError(`Could not delete item ${item.id}: ${err.message}`);
+  }
+  loadItems();
+}
+
+async function saveItem(event) {
+  event.preventDefault();
+  const payload = { name: els.name.value, description: els.description.value };
+  els.save.disabled = true;
+  try {
+    if (editingId === null) {
+      await api(API, { method: 'POST', body: JSON.stringify(payload) });
+    } else {
+      await api(`${API}/${editingId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+    }
+    els.modal.close();
+    loadItems();
+  } catch (err) {
+    const details = Array.isArray(err.details)
+      ? err.details.map((d) => (d.path?.length ? `${d.path.join('.')}: ${d.message}` : d.message))
+      : [];
+    showFormErrors(details.length ? details : [err.message]);
   } finally {
-    button.disabled = false;
+    els.save.disabled = false;
   }
-});
-
-els.filter.addEventListener('input', render);
-
-async function checkHealth() {
-  let state = 'down';
-  let text = 'Server unreachable';
-  try {
-    const res = await fetch('/health');
-    const body = await res.json();
-    state = body.db === 'up' ? 'ok' : 'degraded';
-    text = body.db === 'up' ? 'Database connected' : 'Database down';
-  } catch {
-    // keep defaults
-  }
-  els.health.dataset.state = state;
-  els.healthText.textContent = text;
 }
+
+els.addBtn.addEventListener('click', openCreate);
+els.cancel.addEventListener('click', () => els.modal.close());
+els.form.addEventListener('submit', saveItem);
 
 loadItems();
-checkHealth();
-setInterval(checkHealth, 15000);

@@ -5,7 +5,7 @@ import { healthRouter } from './routes/health.js';
 import { itemsRouter } from './routes/items.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 
-const PUBLIC_DIR = fileURLToPath(new URL('../public', import.meta.url));
+const publicDir = fileURLToPath(new URL('../public', import.meta.url));
 
 /**
  * @param {object} deps
@@ -21,9 +21,6 @@ export function createApp({ prisma, webhookMiddleware } = {}) {
   if (webhookMiddleware) app.use(webhookMiddleware);
 
   app.use(express.json({ limit: '1mb' }));
-
-  // Static UI (public/index.html is served at /).
-  app.use(express.static(PUBLIC_DIR));
 
   app.get('/api', (_req, res) => {
     res.json({
@@ -41,6 +38,9 @@ export function createApp({ prisma, webhookMiddleware } = {}) {
 
   app.use('/health', healthRouter(prisma));
   app.use('/api/items', itemsRouter(prisma));
+
+  // Items UI (list view + edit modal). Plain static files so Helmet's default CSP applies.
+  app.use(express.static(publicDir));
 
   app.use(notFound);
   app.use(errorHandler);
